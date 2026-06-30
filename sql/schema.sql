@@ -393,5 +393,9 @@ DELIMITER ;
 -- =============================================
 -- 5. DATOS INICIALES DEL SISTEMA
 -- =============================================
+CREATE USER IF NOT EXISTS 'admin'@'localhost' IDENTIFIED BY 'admin123';
+GRANT ALL PRIVILEGES ON La_Moderna.* TO 'admin'@'localhost';
+FLUSH PRIVILEGES;
+
 INSERT INTO Usuarios (Username, Password, Rol, ID_Cliente, Activo) 
 VALUES ('admin', 'admin123', 'ADMIN', NULL, TRUE);
