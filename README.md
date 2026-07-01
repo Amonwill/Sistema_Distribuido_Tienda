@@ -47,6 +47,60 @@ git clone https://github.com/Amonwill/Sistema_Distribuido_Tienda.git
 cd Sistema_Distribuido_Tienda
 ```
 
+#### 3.1 Arreglar tomcat
+```bash
+    # 1) Limpiar instalación previa
+    sudo rm -rf /opt/tomcat9
+    sudo mkdir -p /opt/tomcat9
+
+    # 2) Verificar que el tar se extrajo
+    ls -lah /tmp | grep apache-tomcat-9.0.93
+    ls -lah /tmp/apache-tomcat-9.0.93/bin
+sudo mariadb-install-db --user=mysql --basedir=/usr --datadir=/var/lib/mysql
+sudo systemctl enable --now mariadb
+    # 3) Copiar BIEN el contenido (nota el "/.")
+    sudo cp -a /tmp/apache-tomcat-9.0.93/. /opt/tomcat9/
+
+    # 4) Validar que ahora sí existe bin
+    ls -lah /opt/tomcat9/bin
+
+    # 5) Permisos
+    sudo useradd -r -m -U -d /opt/tomcat9 -s /bin/false tomcat 2>/dev/null || true
+    sudo chown -R tomcat:tomcat /opt/tomcat9
+    sudo chmod +x /opt/tomcat9/bin/*.sh
+
+    # ARRANCA MANUALMENTE TOMCAT:
+    sudo -u tomcat /opt/tomcat9/bin/version.sh
+    sudo -u tomcat /opt/tomcat9/bin/startup.sh
+    ss -ltnp | grep 8080
+
+
+    #EN CASO DE QUE EL SERVICIO NO LEVANTE EJECUTA:
+    ls -lah /opt/tomcat9
+    ls -lah /opt/tomcat9/bin
+    sudo -u tomcat /opt/tomcat9/bin/startup.sh
+    sudo tail -n 120 /opt/tomcat9/logs/catalina.out
+
+
+    # 6) Despliega el proyecto
+    cd ~/Sistema_Distribuido_Tienda
+    mvn clean package
+
+    sudo cp target/LaModerna.war /opt/tomcat9/webapps/
+    sudo chown tomcat:tomcat /opt/tomcat9/webapps/LaModerna.war
+
+    # reinicia limpio
+    sudo -u tomcat /opt/tomcat9/bin/shutdown.sh
+    sleep 3
+    sudo -u tomcat /opt/tomcat9/bin/startup.sh
+
+    # verifica el despliegue
+    ls -lah /opt/tomcat9/webapps/
+    sudo tail -n 150 /opt/tomcat9/logs/catalina.out | grep -Ei "LaModerna|SEVERE|ERROR|Exception|Deploy"
+    ss -ltnp | grep 8080
+    #entra a http://localhost:8080/LaModerna/
+```
+
 ### 4. Crear la base de datos
 El script crea la base `La_Moderna`, todas las tablas, el trigger de devolución de stock, los procedimientos almacenados (inventario, ventas, cortes de caja, alertas, métricas) y un usuario administrador inicial.
 
@@ -57,6 +111,15 @@ sudo mariadb -u root < sql/schema.sql
 Verifica que se creó correctamente:
 ```bash
 sudo mariadb -u root -e "USE La_Moderna; SHOW TABLES;"
+
+sudo mariadb -u root -e "
+CREATE USER IF NOT EXISTS 'esime'@'localhost' IDENTIFIED BY 'esime123';
+ALTER USER 'esime'@'localhost' IDENTIFIED BY 'esime123';
+GRANT ALL PRIVILEGES ON La_Moderna.* TO 'esime'@'localhost';
+FLUSH PRIVILEGES;
+"
+
+mariadb -u esime -p'esime123' -e "USE La_Moderna; SELECT Username, Rol, Activo FROM Usuarios;"
 ```
 
 ### 5. Compilar y desplegar la aplicación
